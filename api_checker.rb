@@ -42,6 +42,15 @@ group by searchengine_id order by last_report_update_date"
 				end
 			end
 		end
+
+		if Time.now-Time.parse(reports[:yahoo_reports].last[2])>300
+			content = "<h2>Data error!</h2>
+							<p>Wrong item 2</p>
+							<p>The last Yahoo record's [last_report_update_date] is far cry from [Time.now]</p>
+							<p><strong>Send Email Time:</strong> #{Time.now}</p>
+							<p><strong>Yahoo record's [last_report_update_date] Time:</strong> #{Time.parse(reports[:yahoo_reports].last[2])}</p>"
+			sendemail("ApiCheck", content) 
+		end
 	end
 
 	def for_one
@@ -100,5 +109,5 @@ MESSAGE_END
 end
 
 c = ApiCheck.new
-c.for_two
+c.check_data
 
