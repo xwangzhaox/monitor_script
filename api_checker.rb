@@ -31,7 +31,7 @@ class ApiCheck
 		to = ["kevin.wang@i-click.cn", "jason.li@i-click.cn", "jay.liu@i-click.cn"]
 		msg = <<MESSAGE_END
 From: kevin.wang@i-click.cn <kevin.wang@i-click.cn>
-To: kevin.wang@i-click.cn <kevin.wang@i-click.cn>
+To: kevin.wang@i-click.cn <kevin.wang@i-click.cn>, jason.li@i-click.cn <jason.li@i-click.cn>, jay.liu@i-click.cn <jay.liu@i-click.cn>
 MIME-Version: 1.0
 Content-type: text/html
 Subject: #{Time.now.strftime("%Y-%m-%d")} #{subject}
