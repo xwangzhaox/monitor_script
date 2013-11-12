@@ -2,6 +2,7 @@ require "mysql"
 require 'pg'
 require 'time'
 require "net/smtp"
+require 'net/http'
 
 class ApiReportDownloadLog
 	def output_date_to_mail
@@ -78,6 +79,64 @@ MESSAGE_END
 
 	end
 
+	def resubmit_non_download_report		
+		get_type = ARGV.shift
+		num = 0
+		three_days_ago = (Time.now-3*24*60*60).strftime("%Y%m%d") 
+		yesterday      = (Time.now-24*60*60).strftime("%Y%m%d")
+		sql = "SELECT id, searchenginename, searchengine, last_structure_update_date
+			FROM `searchengines` WHERE 
+			(apiinbound=1 
+			AND status='Active' 
+			AND last_report_date>='#{three_days_ago}' 
+			AND last_report_date<'#{yesterday}')"
+		my = Mysql.new("10.1.1.130", "xmo_readonly", "Tmac360doaS", "xmo")
+		all_searchengines = my.query(sql)
+		p "-----------------------------------------------"
+		all_searchengines.each do |searchengine|
+			id                         = searchengine[0].nil? ? "---" : searchengine[0]
+			searchengine_name          = searchengine[1].nil? ? "---" : searchengine[1]
+			searchengine_type          = searchengine[2].nil? ? "---" : searchengine[2]
+			last_structure_update_date = searchengine[3].nil? ? "---" : searchengine[3]
+
+			next if !["Baidu", "Google", "Yahoo", "Sogou", "Bing"].include?(searchengine[2])
+			case get_type
+			when "-s"
+				if last_structure_update_date[8..9]==Time.now().strftime("%d").to_s
+					num+=1;next
+				end
+				resubmit_url = URI.parse("http://10.1.1.54/api/get_structure?api_id=#{searchengine.first.to_s}") 
+				res = get_require(resubmit_url)
+			when "-r"
+				resubmit_url = URI.parse("http://10.1.1.54/api/get_#{searchengine[2].downcase}_report?api_id=#{searchengine.first.to_s}") 
+				res = get_require(resubmit_url)
+			when "-show"
+				p id.ljust(5)+"|"+searchengine_name.ljust(30)+"|"+searchengine_type.ljust(6)+"|"+last_structure_update_date.ljust(20)
+			else
+				resubmit_url = URI.parse("http://10.1.1.54/api/get_#{searchengine[2].downcase}_report?api_id=#{searchengine.first.to_s}") 
+				res = get_require(resubmit_url)
+			end
+			
+			p id.ljust(5)+"|"+searchengine_name.ljust(30)+"|"+searchengine_type.ljust(6)+"|"+last_structure_update_date.ljust(20)+"|"+res if get_type!="-show"
+		end
+		p "-----------------------------------------------"
+		case get_type
+		when "-s"
+			p "update #{all_searchengines.num_rows.to_i-num} reports structrue successful."
+		when "-r"
+			p "resubmit #{all_searchengines.num_rows} reports successful."
+		when "-show"
+			p "There has #{all_searchengines.num_rows} reports not download for now."
+		else
+			p "resubmit #{all_searchengines.num_rows} reports successful."
+		end
+	end
+
+	def get_require resubmit_url=""
+		http=Net::HTTP.start(resubmit_url.host,resubmit_url.port)  
+		return res=Net::HTTP.get(resubmit_url) 
+	end
+
 	def get_mysql_date
 		val = {}
 		sql = "select searchengine, count(distinct se.id) 
@@ -116,4 +175,4 @@ MESSAGE_END
 end
 
 a = ApiReportDownloadLog.new
-a.output_date_to_mail
+a.resubmit_non_download_report
